@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TypeGuard — Keyboard Language Alert</title>
+<meta name="description" content="TypeGuard plays a sound when you start typing to indicate which keyboard language is active. Free, lightweight, works with all languages.">
+<meta property="og:title" content="TypeGuard — Keyboard Language Alert">
+<meta property="og:description" content="Never type in the wrong language again. Free keyboard language alert for Windows.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#3b82f6">
+<link rel="icon" href="../app.ico" type="image/x-icon">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue-500:#3b82f6;--blue-600:#2563eb;--blue-700:#1d4ed8;
+  --blue-50:#eff6ff;--blue-100:#dbeafe;
+  --gray-50:#f9fafb;--gray-100:#f3f4f6;--gray-200:#e5e7eb;
+  --gray-400:#9ca3af;--gray-500:#6b7280;--gray-600:#4b5563;
+  --gray-700:#374151;--gray-800:#1f2937;--gray-900:#111827;
+  --green-500:#22c55e;--green-600:#16a34a;
+  --radius:12px;--radius-lg:16px;--radius-xl:24px;
+  --shadow:0 1px 3px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.06);
+  --shadow-lg:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1);
+  --shadow-xl:0 20px 25px -5px rgba(0,0,0,.1),0 8px 10px -6px rgba(0,0,0,.1);
+  --max-w:1120px;
+}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  color:var(--gray-800);background:#fff;line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+html[dir="rtl"] body{direction:rtl;text-align:right}
+
+/* ── NAV ── */
+.nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:rgba(255,255,255,.85);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--gray-200);
+  transition:box-shadow .3s;
+}
+.nav.scrolled{box-shadow:var(--shadow)}
+.nav-inner{
+  max-width:var(--max-w);margin:0 auto;padding:0 24px;
+  display:flex;align-items:center;height:64px;gap:8px;
+}
+.nav-logo{font-weight:800;font-size:1.2rem;color:var(--blue-600);text-decoration:none;margin-inline-end:auto}
+.nav-links{display:flex;gap:4px;align-items:center}
+.nav-links a{
+  color:var(--gray-600);text-decoration:none;font-size:.875rem;font-weight:500;
+  padding:6px 12px;border-radius:8px;transition:all .2s;
+}
+.nav-links a:hover{color:var(--gray-900);background:var(--gray-100)}
+.lang-select{
+  position:relative;margin-inline-start:8px;
+}
+.lang-btn{
+  display:flex;align-items:center;gap:6px;
+  padding:6px 12px;border:1px solid var(--gray-200);border-radius:8px;
+  background:#fff;cursor:pointer;font-size:.8rem;font-weight:500;
+  color:var(--gray-700);transition:all .2s;font-family:inherit;
+}
+.lang-btn:hover{border-color:var(--blue-500);color:var(--blue-600)}
+.lang-btn svg{width:16px;height:16px;flex-shrink:0}
+.lang-dropdown{
+  position:absolute;top:calc(100% + 4px);right:0;
+  background:#fff;border:1px solid var(--gray-200);border-radius:var(--radius);
+  box-shadow:var(--shadow-xl);min-width:180px;
+  opacity:0;visibility:hidden;transform:translateY(-4px);
+  transition:all .2s;z-index:200;max-height:340px;overflow-y:auto;
+}
+html[dir="rtl"] .lang-dropdown{right:auto;left:0}
+.lang-dropdown.open{opacity:1;visibility:visible;transform:translateY(0)}
+.lang-dropdown button{
+  display:block;width:100%;padding:8px 16px;border:none;background:none;
+  text-align:start;cursor:pointer;font-size:.85rem;color:var(--gray-700);
+  transition:background .15s;font-family:inherit;
+}
+.lang-dropdown button:first-child{border-radius:var(--radius) var(--radius) 0 0}
+.lang-dropdown button:last-child{border-radius:0 0 var(--radius) var(--radius)}
+.lang-dropdown button:hover{background:var(--blue-50);color:var(--blue-700)}
+.lang-dropdown button.active{background:var(--blue-50);color:var(--blue-600);font-weight:600}
+.nav-cta{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 18px;background:var(--blue-600);color:#fff;
+  border-radius:8px;text-decoration:none;font-size:.85rem;font-weight:600;
+  transition:all .2s;border:none;cursor:pointer;margin-inline-start:8px;
+}
+.nav-cta:hover{background:var(--blue-700);box-shadow:var(--shadow)}
+.nav-cta svg{width:14px;height:14px}
+
+/* ── HERO ── */
+.hero{
+  padding:120px 24px 80px;
+  background:linear-gradient(135deg,var(--blue-50) 0%,#fff 50%,var(--blue-50) 100%);
+  text-align:center;overflow:hidden;
+}
+.hero-inner{max-width:var(--max-w);margin:0 auto}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 16px;background:#fff;border:1px solid var(--gray-200);
+  border-radius:100px;font-size:.8rem;font-weight:500;color:var(--gray-600);
+  margin-bottom:24px;
+}
+.hero-badge .dot{width:8px;height:8px;background:var(--green-500);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.hero h1{
+  font-size:clamp(2rem,5vw,3.5rem);font-weight:800;
+  line-height:1.15;color:var(--gray-900);
+  max-width:700px;margin:0 auto 20px;
+}
+.hero p.subtitle{
+  font-size:clamp(1rem,2vw,1.2rem);color:var(--gray-500);
+  max-width:560px;margin:0 auto 36px;line-height:1.7;
+}
+.hero-buttons{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:16px}
+.btn-primary{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:14px 32px;background:var(--blue-600);color:#fff;
+  border-radius:var(--radius);font-size:1rem;font-weight:600;
+  text-decoration:none;transition:all .2s;border:none;cursor:pointer;
+  box-shadow:0 4px 14px rgba(59,130,246,.4);
+}
+.btn-primary:hover{background:var(--blue-700);transform:translateY(-1px);box-shadow:0 6px 20px rgba(59,130,246,.5)}
+.btn-primary svg{width:18px;height:18px}
+.btn-secondary{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:14px 32px;background:#fff;color:var(--gray-700);
+  border:1px solid var(--gray-200);border-radius:var(--radius);
+  font-size:1rem;font-weight:500;text-decoration:none;transition:all .2s;
+}
+.btn-secondary:hover{border-color:var(--gray-400);background:var(--gray-50)}
+.hero-version{font-size:.8rem;color:var(--gray-400);margin-top:12px}
+
+/* ── DEMO MOCKUP ── */
+.demo-container{
+  max-width:480px;margin:48px auto 0;
+  perspective:800px;
+}
+.demo-notification{
+  background:var(--gray-900);border-radius:var(--radius-lg);
+  padding:20px 28px;display:flex;align-items:center;gap:16px;
+  box-shadow:var(--shadow-xl),0 0 60px rgba(59,130,246,.15);
+  animation:float 4s ease-in-out infinite;
+}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.demo-bars{display:flex;gap:3px;align-items:flex-end;height:28px;flex-shrink:0}
+.demo-bars .bar{
+  width:4px;background:var(--blue-500);border-radius:2px;
+  animation:barPulse 1.2s ease-in-out infinite;
+}
+.demo-bars .bar:nth-child(1){height:10px;animation-delay:0s}
+.demo-bars .bar:nth-child(2){height:20px;animation-delay:.15s}
+.demo-bars .bar:nth-child(3){height:28px;animation-delay:.3s}
+.demo-bars .bar:nth-child(4){height:16px;animation-delay:.45s}
+.demo-bars .bar:nth-child(5){height:24px;animation-delay:.6s}
+@keyframes barPulse{
+  0%,100%{transform:scaleY(1);opacity:1}
+  50%{transform:scaleY(.5);opacity:.6}
+}
+.demo-text{text-align:start}
+.demo-app{font-size:.75rem;color:var(--blue-400);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.demo-lang{
+  font-size:1.4rem;font-weight:700;color:#fff;
+  min-width:140px;
+}
+.demo-lang span{
+  display:inline-block;
+  animation:langFade 6s ease-in-out infinite;
+}
+@keyframes langFade{0%,40%{opacity:1}45%,55%{opacity:0}60%,100%{opacity:1}}
+.demo-lang .lang-b{animation-delay:3s;position:absolute}
+
+/* ── FEATURES ── */
+.features{padding:80px 24px;background:#fff}
+.features-inner{max-width:var(--max-w);margin:0 auto}
+.section-title{
+  font-size:clamp(1.5rem,3vw,2.2rem);font-weight:800;
+  text-align:center;color:var(--gray-900);margin-bottom:12px;
+}
+.section-subtitle{
+  text-align:center;color:var(--gray-500);font-size:1rem;
+  max-width:480px;margin:0 auto 48px;
+}
+.features-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+  gap:24px;
+}
+.feature-card{
+  padding:28px;border:1px solid var(--gray-100);border-radius:var(--radius-lg);
+  transition:all .3s;background:#fff;
+}
+.feature-card:hover{
+  border-color:var(--blue-100);box-shadow:var(--shadow-lg);
+  transform:translateY(-2px);
+}
+.feature-icon{
+  width:44px;height:44px;border-radius:var(--radius);
+  background:var(--blue-50);display:flex;align-items:center;justify-content:center;
+  margin-bottom:16px;color:var(--blue-600);
+}
+.feature-icon svg{width:22px;height:22px}
+.feature-card h3{font-size:1.05rem;font-weight:700;color:var(--gray-900);margin-bottom:8px}
+.feature-card p{font-size:.9rem;color:var(--gray-500);line-height:1.65}
+
+/* ── SCREENSHOT ── */
+.screenshots{padding:80px 24px;background:var(--gray-50)}
+.screenshots-inner{max-width:var(--max-w);margin:0 auto}
+.screenshot-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:24px;margin-top:48px;
+}
+.screenshot-slot{
+  aspect-ratio:16/10;border-radius:var(--radius-lg);
+  border:2px dashed var(--gray-200);background:#fff;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--gray-400);font-size:.9rem;text-align:center;
+  padding:24px;transition:all .3s;
+}
+.screenshot-slot:hover{border-color:var(--blue-300);color:var(--blue-500)}
+.screenshot-slot img{
+  width:100%;height:100%;object-fit:cover;border-radius:calc(var(--radius-lg) - 2px);
+}
+
+/* ── FAQ ── */
+.faq{padding:80px 24px;background:#fff}
+.faq-inner{max-width:680px;margin:0 auto}
+.faq-item{border-bottom:1px solid var(--gray-100)}
+.faq-item:first-child{border-top:1px solid var(--gray-100)}
+.faq-q{
+  width:100%;padding:20px 0;border:none;background:none;
+  display:flex;justify-content:space-between;align-items:center;gap:16px;
+  cursor:pointer;text-align:start;font-family:inherit;
+  font-size:1rem;font-weight:600;color:var(--gray-800);
+  transition:color .2s;
+}
+.faq-q:hover{color:var(--blue-600)}
+.faq-q svg{
+  width:20px;height:20px;flex-shrink:0;color:var(--gray-400);
+  transition:transform .3s;
+}
+.faq-item.open .faq-q svg{transform:rotate(180deg)}
+.faq-a{
+  max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s ease;
+}
+.faq-item.open .faq-a{max-height:300px;padding-bottom:20px}
+.faq-a p{font-size:.9rem;color:var(--gray-500);line-height:1.7}
+
+/* ── CTA ── */
+.cta{
+  padding:80px 24px;
+  background:linear-gradient(135deg,var(--blue-600),var(--blue-700));
+  text-align:center;color:#fff;
+}
+.cta-inner{max-width:var(--max-w);margin:0 auto}
+.cta h2{font-size:clamp(1.5rem,3vw,2.2rem);font-weight:800;margin-bottom:12px}
+.cta p{font-size:1rem;opacity:.85;margin-bottom:32px;max-width:480px;margin-left:auto;margin-right:auto}
+.btn-white{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:14px 32px;background:#fff;color:var(--blue-700);
+  border-radius:var(--radius);font-size:1rem;font-weight:600;
+  text-decoration:none;transition:all .2s;
+  box-shadow:0 4px 14px rgba(0,0,0,.15);
+}
+.btn-white:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,0,0,.2)}
+.btn-white svg{width:18px;height:18px}
+
+/* ── FOOTER ── */
+.footer{padding:40px 24px;background:var(--gray-900);color:var(--gray-400);font-size:.85rem}
+.footer-inner{
+  max-width:var(--max-w);margin:0 auto;
+  display:flex;justify-content:space-between;align-items:center;
+  flex-wrap:wrap;gap:16px;
+}
+.footer a{color:var(--gray-400);text-decoration:none;transition:color .2s}
+.footer a:hover{color:#fff}
+.footer-links{display:flex;gap:20px}
+.footer-brand{display:flex;align-items:center;gap:8px}
+.footer-brand .free{color:var(--green-500);font-weight:500}
+
+/* ── ANIMATIONS ── */
+.fade-in{opacity:0;transform:translateY(20px);transition:all .6s ease-out}
+.fade-in.visible{opacity:1;transform:translateY(0)}
+
+/* ── MOBILE ── */
+@media(max-width:768px){
+  .nav-links a:not(.nav-cta){display:none}
+  .hero{padding:100px 20px 60px}
+  .hero h1{font-size:1.8rem}
+  .features-grid{grid-template-columns:1fr}
+  .screenshot-grid{grid-template-columns:1fr}
+  .demo-notification{padding:16px 20px}
+  .demo-lang{font-size:1.1rem;min-width:100px}
+  .footer-inner{flex-direction:column;text-align:center}
+}
+@media(max-width:480px){
+  .hero-buttons{flex-direction:column;align-items:center}
+  .btn-primary,.btn-secondary{width:100%;justify-content:center}
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:8px}
+::-webkit-scrollbar-track{background:var(--gray-50)}
+::-webkit-scrollbar-thumb{background:var(--gray-300);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--gray-400)}
+</style>
+</head>
+<body>
+
+<!-- ════════ NAV ════════ -->
+<nav class="nav" id="nav">
+<div class="nav-inner">
+  <a href="#" class="nav-logo">TypeGuard</a>
+  <div class="nav-links">
+    <a href="#features" data-i18n="nav_features"></a>
+    <a href="#faq" data-i18n="nav_faq"></a>
+    <div class="lang-select">
+      <button class="lang-btn" id="langBtn" aria-label="Select language">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2z"/></svg>
+        <span id="langLabel">English</span>
+        <svg viewBox="0 0 20 20" fill="currentColor" style="width:12px;height:12px"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/></svg>
+      </button>
+      <div class="lang-dropdown" id="langDropdown"></div>
+    </div>
+    <a href="https://github.com/doron2864/TypeGuard/releases/latest/download/TypeGuard-0.9.3-setup.exe" class="nav-cta" data-i18n="nav_download">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 3a1 1 0 011 1v7.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V4a1 1 0 011-1z"/><path d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/></svg>
+    </a>
+  </div>
+</div>
+</nav>
+
+<!-- ════════ HERO ════════ -->
+<section class="hero" id="hero">
+<div class="hero-inner">
+  <div class="hero-badge">
+    <span class="dot"></span>
+    <span data-i18n="hero_badge"></span>
+  </div>
+  <h1 data-i18n="hero_title"></h1>
+  <p class="subtitle" data-i18n="hero_subtitle"></p>
+  <div class="hero-buttons">
+    <!-- TODO: Update href to GitHub Releases URL -->
+    <a href="https://github.com/doron2864/TypeGuard/releases/latest/download/TypeGuard-0.9.3-setup.exe" class="btn-primary" data-i18n="hero_cta">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 3a1 1 0 011 1v7.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V4a1 1 0 011-1z"/><path d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/></svg>
+    </a>
+  </div>
+  <p class="hero-version" data-i18n="hero_version"></p>
+
+  <div class="demo-container fade-in">
+    <div class="demo-notification">
+      <div class="demo-bars">
+        <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      </div>
+      <div class="demo-text">
+        <div class="demo-app">TypeGuard</div>
+        <div class="demo-lang" id="demoLang"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ════════ FEATURES ════════ -->
+<section class="features" id="features">
+<div class="features-inner">
+  <h2 class="section-title" data-i18n="features_title"></h2>
+  <div class="features-grid">
+
+    <div class="feature-card fade-in">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </div>
+      <h3 data-i18n="f1_title"></h3>
+      <p data-i18n="f1_desc"></p>
+    </div>
+
+    <div class="feature-card fade-in">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2z"/></svg>
+      </div>
+      <h3 data-i18n="f2_title"></h3>
+      <p data-i18n="f2_desc"></p>
+    </div>
+
+    <div class="feature-card fade-in">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+      </div>
+      <h3 data-i18n="f3_title"></h3>
+      <p data-i18n="f3_desc"></p>
+    </div>
+
+    <div class="feature-card fade-in">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <h3 data-i18n="f4_title"></h3>
+      <p data-i18n="f4_desc"></p>
+    </div>
+
+    <div class="feature-card fade-in">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+      </div>
+      <h3 data-i18n="f5_title"></h3>
+      <p data-i18n="f5_desc"></p>
+    </div>
+
+    <div class="feature-card fade-in">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/></svg>
+      </div>
+      <h3 data-i18n="f6_title"></h3>
+      <p data-i18n="f6_desc"></p>
+    </div>
+
+  </div>
+</div>
+</section>
+
+<!-- ════════ SCREENSHOTS ════════ -->
+<section class="screenshots" id="screenshots">
+<div class="screenshots-inner">
+  <h2 class="section-title" data-i18n="screenshots_title"></h2>
+  <p class="section-subtitle" data-i18n="screenshots_subtitle"></p>
+  <div class="screenshot-grid">
+    <div class="screenshot-slot fade-in" data-caption="screenshot_1">
+      <img src="screenshot-tray.png" alt="System tray menu" loading="lazy">
+    </div>
+    <div class="screenshot-slot fade-in" data-caption="screenshot_2">
+      <img src="screenshot-settings.png" alt="Language settings" loading="lazy">
+    </div>
+    <div class="screenshot-slot fade-in" data-caption="screenshot_3">
+      <img src="screenshot-sounds.png" alt="Sound selection" loading="lazy">
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ════════ FAQ ════════ -->
+<section class="faq" id="faq">
+<div class="faq-inner">
+  <h2 class="section-title" data-i18n="faq_title"></h2>
+  <div style="margin-top:40px">
+    <div class="faq-item fade-in">
+      <button class="faq-q"><span data-i18n="faq1_q"></span><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/></svg></button>
+      <div class="faq-a"><p data-i18n="faq1_a"></p></div>
+    </div>
+    <div class="faq-item fade-in">
+      <button class="faq-q"><span data-i18n="faq2_q"></span><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/></svg></button>
+      <div class="faq-a"><p data-i18n="faq2_a"></p></div>
+    </div>
+    <div class="faq-item fade-in">
+      <button class="faq-q"><span data-i18n="faq3_q"></span><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/></svg></button>
+      <div class="faq-a"><p data-i18n="faq3_a"></p></div>
+    </div>
+    <div class="faq-item fade-in">
+      <button class="faq-q"><span data-i18n="faq4_q"></span><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/></svg></button>
+      <div class="faq-a"><p data-i18n="faq4_a"></p></div>
+    </div>
+    <div class="faq-item fade-in">
+      <button class="faq-q"><span data-i18n="faq5_q"></span><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/></svg></button>
+      <div class="faq-a"><p data-i18n="faq5_a"></p></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ════════ CTA ════════ -->
+<section class="cta" id="download">
+<div class="cta-inner fade-in">
+  <h2 data-i18n="cta_title"></h2>
+  <p data-i18n="cta_subtitle"></p>
+  <!-- TODO: Update href to GitHub Releases URL -->
+  <a href="https://github.com/doron2864/TypeGuard/releases/latest/download/TypeGuard-0.9.3-setup.exe" class="btn-white" data-i18n="cta_button">
+    <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 3a1 1 0 011 1v7.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V4a1 1 0 011-1z"/><path d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/></svg>
+  </a>
+</div>
+</section>
+
+<!-- ════════ FOOTER ════════ -->
+<footer class="footer">
+<div class="footer-inner">
+  <div class="footer-brand">
+    <span>TypeGuard</span>
+    <span>·</span>
+    <span data-i18n="footer_dev"></span>
+    <strong>MaftéaH</strong>
+    <span>·</span>
+    <span class="free" data-i18n="footer_free"></span>
+  </div>
+  <div class="footer-links">
+    <a href="https://buymeacoffee.com/mafteah" target="_blank" rel="noopener" data-i18n="footer_donate"></a>
+  </div>
+</div>
+</footer>
+
+<script>
+// ────────────────────────────────────────
+// TRANSLATIONS
+// ────────────────────────────────────────
+const LANGS = [
+  {code:'en',name:'English',rtl:false},
+  {code:'ar',name:'العربية',rtl:true},
+  {code:'zh',name:'中文',rtl:false},
+  {code:'fr',name:'Français',rtl:false},
+  {code:'de',name:'Deutsch',rtl:false},
+  {code:'he',name:'עברית',rtl:true},
+  {code:'ja',name:'日本語',rtl:false},
+  {code:'ko',name:'한국어',rtl:false},
+  {code:'pt',name:'Português',rtl:false},
+  {code:'ru',name:'Русский',rtl:false},
+  {code:'es',name:'Español',rtl:false},
+  {code:'tr',name:'Türkçe',rtl:false},
+];
+
+const T = {
+en:{
+  nav_features:'Features',nav_faq:'FAQ',nav_download:'Download',
+  hero_badge:'Free',
+  hero_title:'Never type in the wrong language again',
+  hero_subtitle:'TypeGuard plays a sound when you start typing, so you always know which keyboard language is active.',
+  hero_cta:'Download Free',hero_github:'Source Code',
+  hero_version:'v0.9.3 · Windows 10/11 · Free',
+  features_title:'Features',
+  f1_title:'Instant Alerts',f1_desc:'Hear a distinct sound the moment you start typing — know your active language before making a mistake.',
+  f2_title:'All Languages',f2_desc:'Works with every keyboard layout installed on Windows. English, Arabic, Russian, Chinese — all supported.',
+  f3_title:'Custom Sounds',f3_desc:'Use the built-in beeps or load your own WAV/MP3 files — one for your home language and another for the rest.',
+  f4_title:'Smart Detection',f4_desc:'Configurable idle timeout ensures alerts only fire when you actually start a new typing session.',
+  f5_title:'Audio Boost',f5_desc:'Hear alerts even while playing music or video. Choose maximum volume or a sharp beep that cuts through.',
+  f6_title:'Lightweight',f6_desc:'Runs silently in your system tray. No windows, no popups, no distractions — just the sound you need.',
+  screenshots_title:'See It in Action',screenshots_subtitle:'TypeGuard lives quietly in your system tray and works with all your applications.',
+  screenshot_1:'System tray menu',screenshot_2:'Settings & customization',screenshot_3:'Sound selection',
+  faq_title:'Frequently Asked Questions',
+  faq1_q:'Is TypeGuard really free?',faq1_a:'Yes, completely free. No ads, no premium version, no subscriptions. If you find it useful, you\'re welcome to support development with a voluntary donation.',
+  faq2_q:'Which languages does it support?',faq2_a:'TypeGuard works with every keyboard layout installed on your Windows system. It doesn\'t matter which language — if Windows recognizes it, TypeGuard can alert you about it.',
+  faq3_q:'Will it slow down my computer?',faq3_a:'Not at all. TypeGuard uses minimal system resources and runs quietly in your system tray. You won\'t notice it\'s there — except for the helpful sounds.',
+  faq4_q:'Can I change the alert sounds?',faq4_a:'Yes! You can use the built-in beep tones with adjustable count and volume, or load your own WAV or MP3 files — one for your home language and one for all others.',
+  faq5_q:'Does it require administrator privileges?',faq5_a:'No. TypeGuard installs and runs without administrator rights.',
+  cta_title:'Ready to stop typing mistakes?',cta_subtitle:'Download TypeGuard — it\'s free, lightweight, and works instantly.',cta_button:'Download for Windows',
+  footer_dev:'Developed by',footer_free:'Free Software',footer_donate:'Support Development',footer_github:'Source Code',
+},
+he:{
+  nav_features:'תכונות',nav_faq:'שאלות נפוצות',nav_download:'הורדה',
+  hero_badge:'חינם',
+  hero_title:'לעולם לא תקלידו בשפה הלא נכונה',
+  hero_subtitle:'TypeGuard משמיע צליל כשאתם מתחילים להקליד, כדי שתמיד תדעו באיזו שפת מקלדת אתם משתמשים.',
+  hero_cta:'הורדה חינם',hero_github:'קוד מקור',
+  hero_version:'v0.9.3 · Windows 10/11 · חינם',
+  features_title:'תכונות',
+  f1_title:'התראות מיידיות',f1_desc:'שמעו צליל ייחודי ברגע שאתם מתחילים להקליד — דעו באיזו שפה אתם לפני שתטעו.',
+  f2_title:'כל השפות',f2_desc:'עובד עם כל פריסות המקלדת המותקנות ב-Windows. עברית, ערבית, רוסית, סינית — הכל נתמך.',
+  f3_title:'צלילים מותאמים',f3_desc:'השתמשו בצפצופים המובנים או טענו קבצי WAV/MP3 משלכם — אחד לשפת הבית ואחד לכל השאר.',
+  f4_title:'זיהוי חכם',f4_desc:'זמן המתנה מתכוונן מבטיח שתקבלו התראה רק כשאתם באמת מתחילים הקלדה חדשה.',
+  f5_title:'הגברת שמע',f5_desc:'שמעו התראות גם בזמן מוזיקה או סרטונים. בחרו עוצמה מקסימלית או צפצוף חד שחודר.',
+  f6_title:'קל משקל',f6_desc:'רץ בשקט במגש המערכת. בלי חלונות, בלי קופצים, בלי הסחות דעת — רק הצליל שאתם צריכים.',
+  screenshots_title:'ראו בפעולה',screenshots_subtitle:'TypeGuard חי בשקט במגש המערכת ועובד עם כל האפליקציות שלכם.',
+  screenshot_1:'תפריט מגש המערכת',screenshot_2:'הגדרות והתאמה',screenshot_3:'בחירת צלילים',
+  faq_title:'שאלות נפוצות',
+  faq1_q:'האם TypeGuard באמת חינם?',faq1_a:'כן, חינם לגמרי. בלי פרסומות, בלי גרסת פרימיום, בלי מנויים. אם התוכנה שימושית לכם, אתם מוזמנים לתמוך בפיתוח עם תרומה.',
+  faq2_q:'אילו שפות נתמכות?',faq2_a:'TypeGuard עובד עם כל פריסת מקלדת המותקנת במערכת Windows שלכם. לא משנה איזו שפה — אם Windows מזהה אותה, TypeGuard יתריע עליה.',
+  faq3_q:'האם זה יאט את המחשב?',faq3_a:'בכלל לא. TypeGuard צורך משאבי מערכת מינימליים ורץ בשקט במגש המערכת. לא תרגישו שהוא שם — חוץ מהצלילים המועילים.',
+  faq4_q:'אפשר לשנות את צלילי ההתראה?',faq4_a:'בהחלט! אפשר להשתמש בצפצופים המובנים עם כמות ועוצמה מתכווננים, או לטעון קבצי WAV או MP3 משלכם — אחד לשפת הבית ואחד לכל השאר.',
+  faq5_q:'צריך הרשאות מנהל?',faq5_a:'לא. TypeGuard מותקן ורץ בלי הרשאות מנהל.',
+  cta_title:'מוכנים להפסיק לטעות בשפה?',cta_subtitle:'הורידו את TypeGuard — חינם, קל משקל, ועובד מיד.',cta_button:'הורדה ל-Windows',
+  footer_dev:'פותח על ידי',footer_free:'תוכנה חופשית',footer_donate:'תמכו בפיתוח',footer_github:'קוד מקור',
+},
+ar:{
+  nav_features:'المميزات',nav_faq:'أسئلة شائعة',nav_download:'تحميل',
+  hero_badge:'مجاني',
+  hero_title:'لن تكتب باللغة الخاطئة مرة أخرى',
+  hero_subtitle:'TypeGuard يصدر صوتاً عند بدء الكتابة، لتعرف دائماً لغة لوحة المفاتيح النشطة.',
+  hero_cta:'تحميل مجاني',hero_github:'الكود المصدري',
+  hero_version:'v0.9.3 · Windows 10/11 · مجاني',
+  features_title:'المميزات',
+  f1_title:'تنبيهات فورية',f1_desc:'اسمع صوتاً مميزاً لحظة بدء الكتابة — اعرف لغتك النشطة قبل الوقوع في خطأ.',
+  f2_title:'جميع اللغات',f2_desc:'يعمل مع كل تخطيطات لوحة المفاتيح المثبتة على Windows. العربية، العبرية، الروسية، الصينية — الكل مدعوم.',
+  f3_title:'أصوات مخصصة',f3_desc:'استخدم الأصوات المدمجة أو حمّل ملفات WAV/MP3 خاصة بك — واحد للغة الأم وواحد لبقية اللغات.',
+  f4_title:'كشف ذكي',f4_desc:'مهلة خمول قابلة للضبط تضمن تلقي التنبيهات فقط عند بدء جلسة كتابة جديدة فعلياً.',
+  f5_title:'تعزيز الصوت',f5_desc:'اسمع التنبيهات حتى أثناء تشغيل الموسيقى أو الفيديو. اختر أقصى مستوى صوت أو صفير حاد.',
+  f6_title:'خفيف الوزن',f6_desc:'يعمل بصمت في شريط النظام. بدون نوافذ، بدون منبثقات، بدون تشتيت — فقط الصوت الذي تحتاجه.',
+  screenshots_title:'شاهده أثناء العمل',screenshots_subtitle:'TypeGuard يعمل بهدوء في شريط النظام مع جميع تطبيقاتك.',
+  screenshot_1:'قائمة شريط النظام',screenshot_2:'الإعدادات والتخصيص',screenshot_3:'اختيار الأصوات',
+  faq_title:'أسئلة شائعة',
+  faq1_q:'هل TypeGuard مجاني حقاً؟',faq1_a:'نعم، مجاني تماماً. بدون إعلانات، بدون نسخة مدفوعة، بدون اشتراكات. إذا وجدته مفيداً، يمكنك دعم التطوير بتبرع.',
+  faq2_q:'أي اللغات مدعومة؟',faq2_a:'يعمل TypeGuard مع كل تخطيط لوحة مفاتيح مثبت على نظام Windows الخاص بك. لا يهم أي لغة — إذا تعرف عليها Windows، فسينبهك TypeGuard.',
+  faq3_q:'هل سيبطئ جهازي؟',faq3_a:'أبداً. يستخدم TypeGuard الحد الأدنى من موارد النظام ويعمل بهدوء في شريط النظام.',
+  faq4_q:'هل يمكنني تغيير أصوات التنبيه؟',faq4_a:'بالتأكيد! يمكنك استخدام النغمات المدمجة أو تحميل ملفات WAV أو MP3 خاصة بك — واحد للغة الأم وواحد لبقية اللغات.',
+  faq5_q:'هل يتطلب صلاحيات مسؤول؟',faq5_a:'لا. يُثبت TypeGuard ويعمل بدون صلاحيات مسؤول.',
+  cta_title:'مستعد للتوقف عن أخطاء اللغة؟',cta_subtitle:'حمّل TypeGuard — مجاني، خفيف، ويعمل فوراً.',cta_button:'تحميل لـ Windows',
+  footer_dev:'طُوّر بواسطة',footer_free:'برنامج مجاني',footer_donate:'ادعم التطوير',footer_github:'الكود المصدري',
+},
+ru:{
+  nav_features:'Функции',nav_faq:'Вопросы',nav_download:'Скачать',
+  hero_badge:'Бесплатно',
+  hero_title:'Больше не печатайте на неправильном языке',
+  hero_subtitle:'TypeGuard воспроизводит звук при начале набора текста, чтобы вы всегда знали, какой язык клавиатуры активен.',
+  hero_cta:'Скачать бесплатно',hero_github:'Исходный код',
+  hero_version:'v0.9.3 · Windows 10/11 · Бесплатно',
+  features_title:'Функции',
+  f1_title:'Мгновенные оповещения',f1_desc:'Услышьте характерный звук в момент начала набора — узнайте активный язык до того, как допустите ошибку.',
+  f2_title:'Все языки',f2_desc:'Работает со всеми раскладками клавиатуры в Windows. Русский, иврит, арабский, китайский — все поддерживаются.',
+  f3_title:'Свои звуки',f3_desc:'Используйте встроенные сигналы или загрузите свои WAV/MP3 файлы — один для основного языка и один для остальных.',
+  f4_title:'Умное определение',f4_desc:'Настраиваемый таймаут бездействия гарантирует оповещения только при начале нового сеанса набора.',
+  f5_title:'Усиление звука',f5_desc:'Слышьте оповещения даже при воспроизведении музыки или видео. Выберите максимальную громкость или резкий сигнал.',
+  f6_title:'Лёгкий',f6_desc:'Работает тихо в системном трее. Без окон, без всплывающих окон — только нужный вам звук.',
+  screenshots_title:'Посмотрите в действии',screenshots_subtitle:'TypeGuard тихо работает в системном трее со всеми вашими приложениями.',
+  screenshot_1:'Меню в трее',screenshot_2:'Настройки',screenshot_3:'Выбор звуков',
+  faq_title:'Часто задаваемые вопросы',
+  faq1_q:'TypeGuard действительно бесплатный?',faq1_a:'Да, полностью бесплатный. Без рекламы, без премиум-версии, без подписок. Если программа полезна, вы можете поддержать разработку пожертвованием.',
+  faq2_q:'Какие языки поддерживаются?',faq2_a:'TypeGuard работает с любой раскладкой клавиатуры в Windows. Неважно какой язык — если Windows его распознаёт, TypeGuard оповестит.',
+  faq3_q:'Замедлит ли он компьютер?',faq3_a:'Нет. TypeGuard использует минимум ресурсов и работает тихо в системном трее.',
+  faq4_q:'Можно изменить звуки оповещений?',faq4_a:'Да! Можно использовать встроенные сигналы или загрузить свои WAV или MP3 файлы — один для основного языка и один для остальных.',
+  faq5_q:'Нужны права администратора?',faq5_a:'Нет. TypeGuard устанавливается и работает без прав администратора.',
+  cta_title:'Готовы перестать ошибаться с языком?',cta_subtitle:'Скачайте TypeGuard — бесплатный, лёгкий и работает сразу.',cta_button:'Скачать для Windows',
+  footer_dev:'Разработано',footer_free:'Бесплатное ПО',footer_donate:'Поддержать разработку',footer_github:'Исходный код',
+},
+fr:{
+  nav_features:'Fonctionnalités',nav_faq:'FAQ',nav_download:'Télécharger',
+  hero_badge:'Gratuit',
+  hero_title:'Ne tapez plus jamais dans la mauvaise langue',
+  hero_subtitle:'TypeGuard émet un son lorsque vous commencez à taper, pour que vous sachiez toujours quelle langue de clavier est active.',
+  hero_cta:'Télécharger gratuitement',hero_github:'Code source',
+  hero_version:'v0.9.3 · Windows 10/11 · Gratuit',
+  features_title:'Fonctionnalités',
+  f1_title:'Alertes instantanées',f1_desc:'Entendez un son distinct dès que vous commencez à taper — connaissez votre langue active avant de faire une erreur.',
+  f2_title:'Toutes les langues',f2_desc:'Fonctionne avec toutes les dispositions de clavier installées sur Windows. Français, arabe, russe, chinois — tout est pris en charge.',
+  f3_title:'Sons personnalisés',f3_desc:'Utilisez les bips intégrés ou chargez vos propres fichiers WAV/MP3 — un pour la langue principale et un pour les autres.',
+  f4_title:'Détection intelligente',f4_desc:'Le délai d\'inactivité configurable garantit des alertes uniquement au début d\'une nouvelle session de frappe.',
+  f5_title:'Amplification audio',f5_desc:'Entendez les alertes même en écoutant de la musique ou des vidéos. Choisissez le volume maximum ou un bip aigu.',
+  f6_title:'Ultra-léger',f6_desc:'Fonctionne silencieusement dans la barre des tâches. Pas de fenêtres, pas de popups — juste le son dont vous avez besoin.',
+  screenshots_title:'Voyez-le en action',screenshots_subtitle:'TypeGuard vit discrètement dans votre barre des tâches et fonctionne avec toutes vos applications.',
+  screenshot_1:'Menu de la barre des tâches',screenshot_2:'Paramètres et personnalisation',screenshot_3:'Sélection des sons',
+  faq_title:'Questions fréquentes',
+  faq1_q:'TypeGuard est-il vraiment gratuit ?',faq1_a:'Oui, entièrement gratuit. Pas de publicités, pas de version premium, pas d\'abonnements. Si vous le trouvez utile, vous pouvez soutenir le développement par un don.',
+  faq2_q:'Quelles langues sont prises en charge ?',faq2_a:'TypeGuard fonctionne avec toute disposition de clavier installée sur votre système Windows. Peu importe la langue — si Windows la reconnaît, TypeGuard vous alertera.',
+  faq3_q:'Va-t-il ralentir mon ordinateur ?',faq3_a:'Pas du tout. TypeGuard utilise un minimum de ressources système et fonctionne silencieusement.',
+  faq4_q:'Puis-je changer les sons d\'alerte ?',faq4_a:'Oui ! Vous pouvez utiliser les bips intégrés ou charger vos propres fichiers WAV ou MP3 — un pour la langue principale et un pour les autres.',
+  faq5_q:'Faut-il des droits administrateur ?',faq5_a:'Non. TypeGuard s\'installe et fonctionne sans droits administrateur.',
+  cta_title:'Prêt à arrêter les erreurs de langue ?',cta_subtitle:'Téléchargez TypeGuard — gratuit, léger et fonctionne instantanément.',cta_button:'Télécharger pour Windows',
+  footer_dev:'Développé par',footer_free:'Logiciel gratuit',footer_donate:'Soutenir le développement',footer_github:'Code source',
+},
+es:{
+  nav_features:'Características',nav_faq:'Preguntas',nav_download:'Descargar',
+  hero_badge:'Gratis',
+  hero_title:'No vuelvas a escribir en el idioma equivocado',
+  hero_subtitle:'TypeGuard reproduce un sonido al empezar a escribir, para que siempre sepas qué idioma de teclado está activo.',
+  hero_cta:'Descargar gratis',hero_github:'Código fuente',
+  hero_version:'v0.9.3 · Windows 10/11 · Gratis',
+  features_title:'Características',
+  f1_title:'Alertas instantáneas',f1_desc:'Escucha un sonido distintivo en el momento en que empiezas a escribir — conoce tu idioma activo antes de cometer un error.',
+  f2_title:'Todos los idiomas',f2_desc:'Funciona con todas las distribuciones de teclado instaladas en Windows. Español, árabe, ruso, chino — todos compatibles.',
+  f3_title:'Sonidos personalizados',f3_desc:'Usa los pitidos integrados o carga tus propios archivos WAV/MP3 — uno para el idioma principal y otro para los demás.',
+  f4_title:'Detección inteligente',f4_desc:'El tiempo de espera configurable garantiza alertas solo cuando realmente comienzas una nueva sesión de escritura.',
+  f5_title:'Potenciador de audio',f5_desc:'Escucha alertas incluso mientras reproduces música o video. Elige volumen máximo o un pitido agudo.',
+  f6_title:'Ultraligero',f6_desc:'Funciona silenciosamente en la bandeja del sistema. Sin ventanas, sin popups — solo el sonido que necesitas.',
+  screenshots_title:'Míralo en acción',screenshots_subtitle:'TypeGuard vive discretamente en tu bandeja del sistema y funciona con todas tus aplicaciones.',
+  screenshot_1:'Menú de la bandeja del sistema',screenshot_2:'Ajustes y personalización',screenshot_3:'Selección de sonidos',
+  faq_title:'Preguntas frecuentes',
+  faq1_q:'¿TypeGuard es realmente gratis?',faq1_a:'Sí, completamente gratis. Sin anuncios, sin versión premium, sin suscripciones. Si te resulta útil, puedes apoyar el desarrollo con una donación.',
+  faq2_q:'¿Qué idiomas soporta?',faq2_a:'TypeGuard funciona con cualquier distribución de teclado instalada en tu sistema Windows. No importa el idioma — si Windows lo reconoce, TypeGuard te alertará.',
+  faq3_q:'¿Ralentizará mi computadora?',faq3_a:'Para nada. TypeGuard usa recursos mínimos del sistema y funciona silenciosamente.',
+  faq4_q:'¿Puedo cambiar los sonidos de alerta?',faq4_a:'¡Sí! Puedes usar los tonos integrados o cargar tus propios archivos WAV o MP3 — uno para el idioma principal y otro para los demás.',
+  faq5_q:'¿Requiere privilegios de administrador?',faq5_a:'No. TypeGuard se instala y funciona sin privilegios de administrador.',
+  cta_title:'¿Listo para dejar de equivocarte de idioma?',cta_subtitle:'Descarga TypeGuard — gratis, ligero y funciona al instante.',cta_button:'Descargar para Windows',
+  footer_dev:'Desarrollado por',footer_free:'Software gratuito',footer_donate:'Apoyar el desarrollo',footer_github:'Código fuente',
+},
+de:{
+  nav_features:'Funktionen',nav_faq:'FAQ',nav_download:'Herunterladen',
+  hero_badge:'Kostenlos',
+  hero_title:'Nie wieder in der falschen Sprache tippen',
+  hero_subtitle:'TypeGuard spielt einen Ton ab, wenn Sie zu tippen beginnen, damit Sie immer wissen, welche Tastatursprache aktiv ist.',
+  hero_cta:'Kostenlos herunterladen',hero_github:'Quellcode',
+  hero_version:'v0.9.3 · Windows 10/11 · Kostenlos',
+  features_title:'Funktionen',
+  f1_title:'Sofortige Benachrichtigungen',f1_desc:'Hören Sie einen markanten Ton, sobald Sie zu tippen beginnen — erkennen Sie Ihre aktive Sprache, bevor ein Fehler passiert.',
+  f2_title:'Alle Sprachen',f2_desc:'Funktioniert mit allen auf Windows installierten Tastaturlayouts. Deutsch, Arabisch, Russisch, Chinesisch — alles unterstützt.',
+  f3_title:'Eigene Töne',f3_desc:'Verwenden Sie die integrierten Signaltöne oder laden Sie eigene WAV/MP3-Dateien — einen für die Hauptsprache und einen für die anderen.',
+  f4_title:'Intelligente Erkennung',f4_desc:'Das einstellbare Leerlauf-Timeout stellt sicher, dass Benachrichtigungen nur bei einer neuen Eingabesitzung ausgelöst werden.',
+  f5_title:'Audio-Boost',f5_desc:'Hören Sie Benachrichtigungen auch bei Musik oder Videos. Wählen Sie maximale Lautstärke oder einen scharfen Signalton.',
+  f6_title:'Federleicht',f6_desc:'Läuft leise im Infobereich. Keine Fenster, keine Popups — nur der Ton, den Sie brauchen.',
+  screenshots_title:'In Aktion sehen',screenshots_subtitle:'TypeGuard lebt unauffällig im Infobereich und funktioniert mit all Ihren Anwendungen.',
+  screenshot_1:'Infobereich-Menü',screenshot_2:'Einstellungen und Anpassung',screenshot_3:'Tonauswahl',
+  faq_title:'Häufige Fragen',
+  faq1_q:'Ist TypeGuard wirklich kostenlos?',faq1_a:'Ja, vollständig kostenlos. Keine Werbung, keine Premium-Version, keine Abonnements. Wenn Sie es nützlich finden, können Sie die Entwicklung mit einer Spende unterstützen.',
+  faq2_q:'Welche Sprachen werden unterstützt?',faq2_a:'TypeGuard funktioniert mit jedem auf Ihrem Windows-System installierten Tastaturlayout. Egal welche Sprache — wenn Windows sie erkennt, benachrichtigt TypeGuard Sie.',
+  faq3_q:'Wird es meinen Computer verlangsamen?',faq3_a:'Überhaupt nicht. TypeGuard nutzt minimale Systemressourcen und läuft leise im Hintergrund.',
+  faq4_q:'Kann ich die Benachrichtigungstöne ändern?',faq4_a:'Ja! Sie können die integrierten Töne verwenden oder eigene WAV- oder MP3-Dateien laden — einen für die Hauptsprache und einen für die anderen.',
+  faq5_q:'Werden Administratorrechte benötigt?',faq5_a:'Nein. TypeGuard wird ohne Administratorrechte installiert und ausgeführt.',
+  cta_title:'Bereit, Sprachfehler zu vermeiden?',cta_subtitle:'Laden Sie TypeGuard herunter — kostenlos, leicht und sofort einsatzbereit.',cta_button:'Für Windows herunterladen',
+  footer_dev:'Entwickelt von',footer_free:'Kostenlose Software',footer_donate:'Entwicklung unterstützen',footer_github:'Quellcode',
+},
+pt:{
+  nav_features:'Recursos',nav_faq:'Perguntas',nav_download:'Baixar',
+  hero_badge:'Grátis',
+  hero_title:'Nunca mais digite no idioma errado',
+  hero_subtitle:'O TypeGuard toca um som quando você começa a digitar, para que sempre saiba qual idioma do teclado está ativo.',
+  hero_cta:'Baixar grátis',hero_github:'Código fonte',
+  hero_version:'v0.9.3 · Windows 10/11 · Grátis',
+  features_title:'Recursos',
+  f1_title:'Alertas instantâneos',f1_desc:'Ouça um som distinto no momento em que começar a digitar — saiba o idioma ativo antes de cometer um erro.',
+  f2_title:'Todos os idiomas',f2_desc:'Funciona com todos os layouts de teclado instalados no Windows. Português, árabe, russo, chinês — todos suportados.',
+  f3_title:'Sons personalizados',f3_desc:'Use os bipes integrados ou carregue seus próprios arquivos WAV/MP3 — um para o idioma principal e outro para os demais.',
+  f4_title:'Detecção inteligente',f4_desc:'O tempo de inatividade configurável garante alertas apenas quando você realmente inicia uma nova sessão de digitação.',
+  f5_title:'Amplificação de áudio',f5_desc:'Ouça alertas mesmo durante música ou vídeo. Escolha volume máximo ou um bipe agudo.',
+  f6_title:'Ultraleve',f6_desc:'Funciona silenciosamente na bandeja do sistema. Sem janelas, sem popups — apenas o som que você precisa.',
+  screenshots_title:'Veja em ação',screenshots_subtitle:'O TypeGuard vive discretamente na bandeja do sistema e funciona com todos os seus aplicativos.',
+  screenshot_1:'Menu da bandeja do sistema',screenshot_2:'Configurações e personalização',screenshot_3:'Seleção de sons',
+  faq_title:'Perguntas frequentes',
+  faq1_q:'O TypeGuard é realmente grátis?',faq1_a:'Sim, totalmente grátis. Sem anúncios, sem versão premium, sem assinaturas. Se achar útil, pode apoiar o desenvolvimento com uma doação.',
+  faq2_q:'Quais idiomas são suportados?',faq2_a:'O TypeGuard funciona com qualquer layout de teclado instalado no seu sistema Windows. Não importa o idioma — se o Windows o reconhece, o TypeGuard alerta você.',
+  faq3_q:'Vai deixar meu computador lento?',faq3_a:'De forma alguma. O TypeGuard usa recursos mínimos do sistema e funciona silenciosamente.',
+  faq4_q:'Posso mudar os sons de alerta?',faq4_a:'Sim! Pode usar os tons integrados ou carregar seus próprios arquivos WAV ou MP3 — um para o idioma principal e outro para os demais.',
+  faq5_q:'Precisa de privilégios de administrador?',faq5_a:'Não. O TypeGuard é instalado e funciona sem privilégios de administrador.',
+  cta_title:'Pronto para parar de errar o idioma?',cta_subtitle:'Baixe o TypeGuard — grátis, leve e funciona instantaneamente.',cta_button:'Baixar para Windows',
+  footer_dev:'Desenvolvido por',footer_free:'Software gratuito',footer_donate:'Apoiar o desenvolvimento',footer_github:'Código fonte',
+},
+tr:{
+  nav_features:'Özellikler',nav_faq:'SSS',nav_download:'İndir',
+  hero_badge:'Ücretsiz',
+  hero_title:'Bir daha yanlış dilde yazmayın',
+  hero_subtitle:'TypeGuard yazmaya başladığınızda bir ses çalar, böylece hangi klavye dilinin aktif olduğunu her zaman bilirsiniz.',
+  hero_cta:'Ücretsiz indir',hero_github:'Kaynak kodu',
+  hero_version:'v0.9.3 · Windows 10/11 · Ücretsiz',
+  features_title:'Özellikler',
+  f1_title:'Anında uyarılar',f1_desc:'Yazmaya başladığınız anda belirgin bir ses duyun — hata yapmadan aktif dilinizi bilin.',
+  f2_title:'Tüm diller',f2_desc:'Windows\'a yüklü tüm klavye düzenleriyle çalışır. Türkçe, Arapça, Rusça, Çince — hepsi desteklenir.',
+  f3_title:'Özel sesler',f3_desc:'Yerleşik bip seslerini kullanın veya kendi WAV/MP3 dosyalarınızı yükleyin — ana dil için bir, diğerleri için bir tane.',
+  f4_title:'Akıllı algılama',f4_desc:'Ayarlanabilir bekleme süresi, yalnızca yeni bir yazma oturumuna başladığınızda uyarı almanızı sağlar.',
+  f5_title:'Ses güçlendirme',f5_desc:'Müzik veya video oynatırken bile uyarıları duyun. Maksimum ses veya keskin bir bip seçin.',
+  f6_title:'Hafif',f6_desc:'Sistem tepsisinde sessizce çalışır. Pencere yok, açılır pencere yok — sadece ihtiyacınız olan ses.',
+  screenshots_title:'Çalışırken görün',screenshots_subtitle:'TypeGuard sistem tepsinizde sessizce yaşar ve tüm uygulamalarınızla çalışır.',
+  screenshot_1:'Sistem tepsisi menüsü',screenshot_2:'Ayarlar ve özelleştirme',screenshot_3:'Ses seçimi',
+  faq_title:'Sık sorulan sorular',
+  faq1_q:'TypeGuard gerçekten ücretsiz mi?',faq1_a:'Evet, tamamen ücretsiz. Reklam yok, premium sürüm yok, abonelik yok. Yararlı bulursanız, geliştirmeyi bağışla destekleyebilirsiniz.',
+  faq2_q:'Hangi diller destekleniyor?',faq2_a:'TypeGuard, Windows sisteminize yüklü her klavye düzeniyle çalışır. Hangi dil olursa olsun — Windows tanıyorsa, TypeGuard sizi uyarır.',
+  faq3_q:'Bilgisayarımı yavaşlatır mı?',faq3_a:'Kesinlikle hayır. TypeGuard minimum sistem kaynağı kullanır ve sessizce çalışır.',
+  faq4_q:'Uyarı seslerini değiştirebilir miyim?',faq4_a:'Evet! Yerleşik tonları kullanabilir veya kendi WAV ya da MP3 dosyalarınızı yükleyebilirsiniz — ana dil için bir, diğerleri için bir tane.',
+  faq5_q:'Yönetici hakları gerekiyor mu?',faq5_a:'Hayır. TypeGuard yönetici hakları olmadan kurulur ve çalışır.',
+  cta_title:'Dil hatalarını durdurmaya hazır mısınız?',cta_subtitle:'TypeGuard\'ı indirin — ücretsiz, hafif ve anında çalışır.',cta_button:'Windows için indir',
+  footer_dev:'Geliştiren',footer_free:'Ücretsiz yazılım',footer_donate:'Geliştirmeyi destekle',footer_github:'Kaynak kodu',
+},
+zh:{
+  nav_features:'功能',nav_faq:'常见问题',nav_download:'下载',
+  hero_badge:'免费',
+  hero_title:'再也不会用错误的语言打字',
+  hero_subtitle:'TypeGuard 在您开始打字时播放提示音，让您始终知道当前激活的键盘语言。',
+  hero_cta:'免费下载',hero_github:'源代码',
+  hero_version:'v0.9.3 · Windows 10/11 · 免费',
+  features_title:'功能特点',
+  f1_title:'即时提醒',f1_desc:'开始打字的那一刻听到独特的提示音 — 在犯错之前就知道当前语言。',
+  f2_title:'支持所有语言',f2_desc:'适用于 Windows 上安装的所有键盘布局。中文、阿拉伯语、俄语、希伯来语 — 全部支持。',
+  f3_title:'自定义声音',f3_desc:'使用内置提示音或加载您自己的 WAV/MP3 文件 — 一个用于主语言，一个用于其他语言。',
+  f4_title:'智能检测',f4_desc:'可配置的空闲超时确保仅在您真正开始新的打字会话时才发出提醒。',
+  f5_title:'音频增强',f5_desc:'即使在播放音乐或视频时也能听到提醒。选择最大音量或尖锐的提示音。',
+  f6_title:'轻量级',f6_desc:'在系统托盘中静默运行。没有窗口，没有弹窗 — 只有您需要的提示音。',
+  screenshots_title:'查看实际效果',screenshots_subtitle:'TypeGuard 静静地驻留在系统托盘中，与您的所有应用程序兼容。',
+  screenshot_1:'系统托盘菜单',screenshot_2:'设置和自定义',screenshot_3:'声音选择',
+  faq_title:'常见问题',
+  faq1_q:'TypeGuard 真的免费吗？',faq1_a:'是的，完全免费。没有广告，没有高级版本，没有订阅。如果您觉得有用，欢迎通过捐赠支持开发。',
+  faq2_q:'支持哪些语言？',faq2_a:'TypeGuard 适用于您 Windows 系统上安装的任何键盘布局。无论什么语言 — 只要 Windows 能识别，TypeGuard 就能提醒您。',
+  faq3_q:'会拖慢我的电脑吗？',faq3_a:'完全不会。TypeGuard 使用极少的系统资源，在后台静默运行。',
+  faq4_q:'可以更改提醒声音吗？',faq4_a:'当然可以！您可以使用内置提示音，也可以加载自己的 WAV 或 MP3 文件 — 一个用于主语言，一个用于其他语言。',
+  faq5_q:'需要管理员权限吗？',faq5_a:'不需要。TypeGuard 无需管理员权限即可安装和运行。',
+  cta_title:'准备好告别语言错误了吗？',cta_subtitle:'下载 TypeGuard — 免费、轻量、即刻生效。',cta_button:'下载 Windows 版',
+  footer_dev:'开发者',footer_free:'免费软件',footer_donate:'支持开发',footer_github:'源代码',
+},
+ja:{
+  nav_features:'機能',nav_faq:'よくある質問',nav_download:'ダウンロード',
+  hero_badge:'無料',
+  hero_title:'もう間違った言語で入力しない',
+  hero_subtitle:'TypeGuard は入力開始時にサウンドを再生し、どのキーボード言語がアクティブかを常にお知らせします。',
+  hero_cta:'無料ダウンロード',hero_github:'ソースコード',
+  hero_version:'v0.9.3 · Windows 10/11 · 無料',
+  features_title:'機能',
+  f1_title:'即時アラート',f1_desc:'入力を始めた瞬間に独特なサウンドが聞こえます — ミスをする前にアクティブな言語を把握できます。',
+  f2_title:'全言語対応',f2_desc:'Windowsにインストールされたすべてのキーボードレイアウトに対応。日本語、アラビア語、ロシア語、中国語 — すべてサポート。',
+  f3_title:'カスタムサウンド',f3_desc:'内蔵ビープ音を使用するか、独自のWAV/MP3ファイルを読み込めます — メイン言語用とその他の言語用。',
+  f4_title:'スマート検出',f4_desc:'設定可能なアイドルタイムアウトにより、新しい入力セッションの開始時のみアラートが発生します。',
+  f5_title:'オーディオブースト',f5_desc:'音楽や動画の再生中でもアラートが聞こえます。最大音量またはシャープなビープ音を選択できます。',
+  f6_title:'超軽量',f6_desc:'システムトレイで静かに動作。ウィンドウなし、ポップアップなし — 必要なサウンドだけ。',
+  screenshots_title:'動作を確認',screenshots_subtitle:'TypeGuard はシステムトレイに静かに常駐し、すべてのアプリケーションと連携します。',
+  screenshot_1:'システムトレイメニュー',screenshot_2:'設定とカスタマイズ',screenshot_3:'サウンド選択',
+  faq_title:'よくある質問',
+  faq1_q:'TypeGuard は本当に無料ですか？',faq1_a:'はい、完全に無料です。広告なし、プレミアム版なし、サブスクリプションなし。便利だと感じたら、寄付で開発を支援いただけます。',
+  faq2_q:'どの言語に対応していますか？',faq2_a:'TypeGuard はWindows システムにインストールされたすべてのキーボードレイアウトに対応しています。どの言語でも — Windowsが認識すれば、TypeGuard がお知らせします。',
+  faq3_q:'パソコンが重くなりませんか？',faq3_a:'まったくなりません。TypeGuard は最小限のシステムリソースで静かに動作します。',
+  faq4_q:'アラート音を変更できますか？',faq4_a:'はい！内蔵トーンを使用するか、独自のWAVまたはMP3ファイルを読み込めます — メイン言語用とその他の言語用。',
+  faq5_q:'管理者権限は必要ですか？',faq5_a:'いいえ。TypeGuard は管理者権限なしでインストール・実行できます。',
+  cta_title:'言語ミスをなくす準備はできましたか？',cta_subtitle:'TypeGuard をダウンロード — 無料、軽量、すぐに使えます。',cta_button:'Windows版をダウンロード',
+  footer_dev:'開発者',footer_free:'フリーソフトウェア',footer_donate:'開発を支援',footer_github:'ソースコード',
+},
+ko:{
+  nav_features:'기능',nav_faq:'자주 묻는 질문',nav_download:'다운로드',
+  hero_badge:'무료',
+  hero_title:'다시는 잘못된 언어로 타이핑하지 마세요',
+  hero_subtitle:'TypeGuard는 타이핑을 시작할 때 소리를 재생하여 어떤 키보드 언어가 활성화되어 있는지 항상 알려줍니다.',
+  hero_cta:'무료 다운로드',hero_github:'소스 코드',
+  hero_version:'v0.9.3 · Windows 10/11 · 무료',
+  features_title:'기능',
+  f1_title:'즉각적인 알림',f1_desc:'타이핑을 시작하는 순간 독특한 소리를 들으세요 — 실수하기 전에 활성 언어를 파악하세요.',
+  f2_title:'모든 언어',f2_desc:'Windows에 설치된 모든 키보드 레이아웃에서 작동합니다. 한국어, 아랍어, 러시아어, 중국어 — 모두 지원.',
+  f3_title:'사용자 정의 소리',f3_desc:'내장 비프음을 사용하거나 자신만의 WAV/MP3 파일을 로드하세요 — 기본 언어용 하나, 나머지 언어용 하나.',
+  f4_title:'스마트 감지',f4_desc:'구성 가능한 유휴 시간 초과로 새로운 타이핑 세션을 시작할 때만 알림이 울립니다.',
+  f5_title:'오디오 부스트',f5_desc:'음악이나 동영상 재생 중에도 알림을 들을 수 있습니다. 최대 볼륨 또는 날카로운 비프음을 선택하세요.',
+  f6_title:'초경량',f6_desc:'시스템 트레이에서 조용히 실행됩니다. 창 없음, 팝업 없음 — 필요한 소리만.',
+  screenshots_title:'실제 동작 확인',screenshots_subtitle:'TypeGuard는 시스템 트레이에 조용히 상주하며 모든 애플리케이션과 함께 작동합니다.',
+  screenshot_1:'시스템 트레이 메뉴',screenshot_2:'설정 및 사용자 정의',screenshot_3:'소리 선택',
+  faq_title:'자주 묻는 질문',
+  faq1_q:'TypeGuard는 정말 무료인가요?',faq1_a:'네, 완전히 무료입니다. 광고 없음, 프리미엄 버전 없음, 구독 없음. 유용하다면 기부로 개발을 지원할 수 있습니다.',
+  faq2_q:'어떤 언어를 지원하나요?',faq2_a:'TypeGuard는 Windows 시스템에 설치된 모든 키보드 레이아웃에서 작동합니다. 어떤 언어든 — Windows가 인식하면 TypeGuard가 알려줍니다.',
+  faq3_q:'컴퓨터가 느려지나요?',faq3_a:'전혀 아닙니다. TypeGuard는 최소한의 시스템 리소스를 사용하며 조용히 실행됩니다.',
+  faq4_q:'알림 소리를 변경할 수 있나요?',faq4_a:'네! 내장 톤을 사용하거나 자신만의 WAV 또는 MP3 파일을 로드할 수 있습니다 — 기본 언어용 하나, 나머지 언어용 하나.',
+  faq5_q:'관리자 권한이 필요한가요?',faq5_a:'아닙니다. TypeGuard는 관리자 권한 없이 설치 및 실행됩니다.',
+  cta_title:'언어 실수를 멈출 준비가 되셨나요?',cta_subtitle:'TypeGuard를 다운로드하세요 — 무료, 가볍고, 즉시 작동합니다.',cta_button:'Windows용 다운로드',
+  footer_dev:'개발자',footer_free:'무료 소프트웨어',footer_donate:'개발 지원',footer_github:'소스 코드',
+},
+};
+
+// Demo language cycling
+const DEMO_LANGS = ['English','Français','中文','Español','Русский','Deutsch','日本語','العربية','Português','한국어','Türkçe','עברית'];
+
+// ────────────────────────────────────────
+// LANGUAGE ENGINE
+// ────────────────────────────────────────
+let currentLang = 'en';
+
+function detectLang() {
+  const nav = (navigator.language || navigator.userLanguage || 'en').slice(0,2).toLowerCase();
+  if (T[nav]) return nav;
+  return 'en';
+}
+
+function setLang(code) {
+  currentLang = code;
+  const langInfo = LANGS.find(l => l.code === code);
+  const t = T[code] || T.en;
+
+  // Set dir & lang
+  document.documentElement.lang = code;
+  document.documentElement.dir = langInfo.rtl ? 'rtl' : 'ltr';
+
+  // Update all translatable elements
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (t[key]) el.textContent = t[key];
+  });
+
+  // Update lang selector label
+  document.getElementById('langLabel').textContent = langInfo.name;
+
+  // Mark active in dropdown
+  document.querySelectorAll('.lang-dropdown button').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.lang === code);
+  });
+
+  // Save preference
+  try { localStorage.setItem('tg-lang', code); } catch(e) {}
+}
+
+// Build language dropdown
+function buildLangDropdown() {
+  const dd = document.getElementById('langDropdown');
+  dd.innerHTML = '';
+  LANGS.forEach(l => {
+    const btn = document.createElement('button');
+    btn.textContent = l.name;
+    btn.dataset.lang = l.code;
+    btn.addEventListener('click', () => { setLang(l.code); dd.classList.remove('open'); });
+    dd.appendChild(btn);
+  });
+}
+
+// Toggle dropdown
+document.getElementById('langBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  document.getElementById('langDropdown').classList.toggle('open');
+});
+document.addEventListener('click', () => document.getElementById('langDropdown').classList.remove('open'));
+
+// ────────────────────────────────────────
+// DEMO ANIMATION
+// ────────────────────────────────────────
+function animateDemo() {
+  const el = document.getElementById('demoLang');
+  let idx = 0;
+  function cycle() {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(6px)';
+    setTimeout(() => {
+      el.textContent = DEMO_LANGS[idx];
+      el.style.opacity = '1';
+      el.style.transform = 'translateY(0)';
+      idx = (idx + 1) % DEMO_LANGS.length;
+    }, 300);
+  }
+  el.style.transition = 'opacity .3s, transform .3s';
+  cycle();
+  setInterval(cycle, 2500);
+}
+
+// ────────────────────────────────────────
+// FAQ ACCORDION
+// ────────────────────────────────────────
+document.querySelectorAll('.faq-q').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const item = btn.parentElement;
+    const wasOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+    if (!wasOpen) item.classList.add('open');
+  });
+});
+
+// ────────────────────────────────────────
+// SCROLL ANIMATIONS
+// ────────────────────────────────────────
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+// Nav shadow on scroll
+window.addEventListener('scroll', () => {
+  document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 10);
+}, { passive: true });
+
+// ────────────────────────────────────────
+// INIT
+// ────────────────────────────────────────
+buildLangDropdown();
+const saved = localStorage.getItem('tg-lang');
+setLang(saved || detectLang());
+animateDemo();
+</script>
+
+</body>
+</html>
